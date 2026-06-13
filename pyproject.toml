@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "budgetgate"
+version = "0.1.0a1"
+description = "An error-budget gate for automated remediation. Automation may propose the fix; the error budget decides whether it acts."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "June Gu" }]
+keywords = ["sre", "error-budget", "slo", "remediation", "automation", "guardrail", "aiops"]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://github.com/JIUNG9/budgetgate"
+Source = "https://github.com/JIUNG9/budgetgate"
+
+[tool.hatch.build.targets.wheel]
+packages = ["budgetgate"]
