@@ -1,4 +1,5 @@
 import pytest
+
 from budgetgate import burn_rate, remaining_budget
 
 
@@ -8,7 +9,9 @@ def test_full_budget_when_no_bad_events():
 
 def test_half_budget_consumed():
     # 99% target on 1000 => 10 allowed bad. 5 bad => 50% remaining.
-    assert remaining_budget(good_events=995, total_events=1000, slo_target=0.99) == pytest.approx(0.5)
+    assert remaining_budget(good_events=995, total_events=1000, slo_target=0.99) == pytest.approx(
+        0.5
+    )
 
 
 def test_budget_exhausted_clamps_to_zero():
@@ -31,5 +34,6 @@ def test_burn_rate_double():
 
 def test_invalid_slo_raises():
     import pytest
+
     with pytest.raises(ValueError):
         remaining_budget(1, 1, 1.0)

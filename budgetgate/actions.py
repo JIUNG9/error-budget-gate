@@ -1,14 +1,16 @@
 """The reversible-action allow-list. Anything destructive is never reversible."""
 
-REVERSIBLE_ACTIONS = frozenset({
-    "restart",
-    "rollout_restart",
-    "scale_up_1",
-    "scale_down_1",
-    "clear_queue",
-    "drain_node",
-    "failover",
-})
+REVERSIBLE_ACTIONS = frozenset(
+    {
+        "restart",
+        "rollout_restart",
+        "scale_up_1",
+        "scale_down_1",
+        "clear_queue",
+        "drain_node",
+        "failover",
+    }
+)
 
 DESTRUCTIVE_TOKENS = ("delete", "destroy", "drop", "terminate", "wipe", "purge")
 

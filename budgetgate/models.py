@@ -1,10 +1,12 @@
 """Core data types for budgetgate. All frozen + pure — no I/O."""
+
 from dataclasses import dataclass
 from enum import IntEnum
 
 
 class Tier(IntEnum):
     """Service criticality. Lower = more critical."""
+
     TIER_0 = 0  # revenue-critical / customer-facing core
     TIER_1 = 1  # important, user-visible
     TIER_2 = 2  # internal, degradable
@@ -14,6 +16,7 @@ class Tier(IntEnum):
 @dataclass(frozen=True)
 class Action:
     """An automated action a remediation system wants to take."""
+
     name: str
     reversible: bool = False
     est_duration_s: int = 0
@@ -31,6 +34,7 @@ class Service:
 class GateDecision:
     """allow = may the automation proceed UNATTENDED?
     requires_human = should a human be paged / approve?"""
+
     allow: bool
     requires_human: bool
     reason: str
