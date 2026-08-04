@@ -1,4 +1,4 @@
-from budgetgate import Action, Service, Tier, evaluate, dry_run
+from budgetgate import Action, Service, Tier, dry_run, evaluate
 
 
 def _act(name="restart", reversible=True, dur=30):
