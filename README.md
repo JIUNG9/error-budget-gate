@@ -1,8 +1,13 @@
-# budgetgate
+# error-budget-gate
 
 **An error-budget gate for automated remediation.** Before any automated action
 runs — a remediation, a deploy, an AI agent's "fix" — `budgetgate` answers one
 question: *can we afford for this to act right now, unattended?*
+
+[![ci](https://github.com/JIUNG9/error-budget-gate/actions/workflows/ci.yml/badge.svg)](https://github.com/JIUNG9/error-budget-gate/actions/workflows/ci.yml)
+[![python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://python.org)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![deps](https://img.shields.io/badge/runtime%20deps-0-1a8917)](pyproject.toml)
 
 > Automation may **propose** the fix. The error budget decides whether it **acts**.
 
@@ -52,7 +57,11 @@ print(decision.allow, decision.requires_human, decision.reason)
 # True False  ALLOW: reversible 'rollout_restart', 50% budget left, env=dev
 ```
 
+The repository is `error-budget-gate`; the import package is `budgetgate`, the same
+way `python-dateutil` imports as `dateutil`.
+
 ```bash
+git clone https://github.com/JIUNG9/error-budget-gate && cd error-budget-gate
 pip install -e ".[dev]"
 python -m pytest -q
 ```
