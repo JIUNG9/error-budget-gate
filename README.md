@@ -34,7 +34,8 @@ can call.
 
 - **BLOCK** if the action isn't reversible, or the error budget is exhausted, or
   it's a tier-0 service in prod.
-- **REQUIRE_HUMAN** if it's production, or the budget is low (< 25% left).
+- **REQUIRE_HUMAN** if it's production, the budget is low (< 25% left), or the budget
+  isn't a finite number (NaN or infinity): unknown is never treated as healthy.
 - **ALLOW** only when it's reversible, non-prod, and the budget is healthy.
 
 The reversible-action allow-list is explicit; anything destructive

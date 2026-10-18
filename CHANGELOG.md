@@ -12,6 +12,11 @@ versioning follows [PEP 440](https://peps.python.org/pep-0440/).
   what it does. The import package stays `budgetgate` — short at the call site,
   the same way `python-dateutil` imports as `dateutil`.
 
+### Fixed
+
+- `evaluate` no longer returns ALLOW when `budget_remaining` is NaN. NaN fails every
+  comparison, so it skipped all guards. A non-finite budget now requires a human.
+
 ### Added
 
 - CI: pytest on Python 3.10–3.13, plus `ruff check` and `ruff format --check`.

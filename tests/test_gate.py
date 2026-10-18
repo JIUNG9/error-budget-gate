@@ -1,3 +1,5 @@
+import pytest
+
 from budgetgate import Action, Service, Tier, dry_run, evaluate
 
 
@@ -48,3 +50,18 @@ def test_flag_lies_allowlist_wins():
 def test_dry_run_no_side_effects():
     r = dry_run(_act("rollout_restart"), Service("checkout"))
     assert r.reversible and r.rollback_available and r.est_duration_s == 30
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+@pytest.mark.parametrize("env", ["dev", "prod"])
+def test_non_finite_budget_never_allows(bad, env):
+    # NaN compares False against everything, so without an explicit check it
+    # would skip every guard and reach ALLOW.
+    d = evaluate(_act(), Service("checkout"), budget_remaining=bad, env=env)
+    assert not d.allow and d.requires_human
+    assert "unknown" in d.reason
+
+
+def test_non_finite_budget_does_not_mask_irreversible_block():
+    d = evaluate(_act("delete_pvc"), Service("checkout"), float("nan"), "dev")
+    assert not d.allow and not d.requires_human
