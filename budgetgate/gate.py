@@ -3,6 +3,8 @@
 The rule: automation may PROPOSE a fix; the error budget decides whether it ACTS.
 """
 
+import math
+
 from .actions import is_reversible
 from .models import Action, GateDecision, Service, Tier
 
@@ -20,6 +22,11 @@ def evaluate(
     # --- hard BLOCKs ---
     if not reversible:
         return GateDecision(False, False, f"BLOCK: '{action.name}' is not a reversible action")
+    if not math.isfinite(budget_remaining):
+        # NaN fails every comparison below, so it would fall through to ALLOW.
+        return GateDecision(
+            False, True, "REQUIRE_HUMAN: error budget unknown (not a finite number) — escalate"
+        )
     if budget_remaining <= 0:
         return GateDecision(
             False, True, "BLOCK: error budget exhausted — page a human, no automated action"
