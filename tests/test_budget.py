@@ -37,3 +37,25 @@ def test_invalid_slo_raises():
 
     with pytest.raises(ValueError):
         remaining_budget(1, 1, 1.0)
+
+
+@pytest.mark.parametrize("fn", [remaining_budget, burn_rate])
+@pytest.mark.parametrize(
+    "good, total",
+    [(11, 10), (-1, 10), (5, -10), (0, -1)],
+)
+def test_impossible_counts_raise(fn, good, total):
+    with pytest.raises(ValueError):
+        fn(good, total, 0.99)
+
+
+@pytest.mark.parametrize("fn", [remaining_budget, burn_rate])
+@pytest.mark.parametrize("slo", [0.0, 1.0, -0.5, 1.5])
+def test_slo_target_checked_by_both_functions(fn, slo):
+    with pytest.raises(ValueError):
+        fn(990, 1000, slo)
+
+
+def test_slo_target_checked_even_with_no_traffic():
+    with pytest.raises(ValueError):
+        remaining_budget(0, 0, 1.0)

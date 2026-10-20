@@ -22,6 +22,11 @@ versioning follows [PEP 440](https://peps.python.org/pep-0440/).
   `qa`, `staging`, `sandbox`, `local`) can ALLOW; anything else is handled like prod.
   `env=None` or `""` used to default to `dev`.
 
+- `remaining_budget` and `burn_rate` raise `ValueError` for negative counts and for
+  `good_events > total_events`, and both check `slo_target` (even with zero traffic).
+  These used to be clamped into a plausible-looking number.
+- `evaluate` requires a human when `budget_remaining` is above 1, instead of allowing.
+
 ### Added
 
 - CI: pytest on Python 3.10–3.13, plus `ruff check` and `ruff format --check`.

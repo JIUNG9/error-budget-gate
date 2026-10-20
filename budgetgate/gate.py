@@ -32,6 +32,11 @@ def evaluate(
         return GateDecision(
             False, True, "REQUIRE_HUMAN: error budget unknown (not a finite number) — escalate"
         )
+    if budget_remaining > 1:
+        # A fraction above 1 means a broken SLI source; do not act on it.
+        return GateDecision(
+            False, True, f"REQUIRE_HUMAN: error budget {budget_remaining} is above 1 — escalate"
+        )
     if budget_remaining <= 0:
         return GateDecision(
             False, True, "BLOCK: error budget exhausted — page a human, no automated action"
