@@ -10,12 +10,17 @@ from .models import Action, GateDecision, Service, Tier
 
 LOW_BUDGET_THRESHOLD = 0.25  # below this, escalate to a human even in non-prod
 
+# Environments that may act unattended. Anything else, including a typo such as
+# "production" or "prd", is treated like prod: unknown is never assumed safe.
+NON_PROD_ENVS = frozenset({"dev", "development", "test", "qa", "staging", "sandbox", "local"})
+
 
 def evaluate(
     action: Action, service: Service, budget_remaining: float, env: str = "dev"
 ) -> GateDecision:
     """Return a GateDecision for an automated action. No side effects."""
-    env = (env or "dev").lower()
+    env = (env or "").strip().lower()
+    non_prod = env in NON_PROD_ENVS
     # Trust the allow-list over a caller-supplied flag.
     reversible = bool(action.reversible) and is_reversible(action.name)
 
@@ -31,16 +36,18 @@ def evaluate(
         return GateDecision(
             False, True, "BLOCK: error budget exhausted — page a human, no automated action"
         )
-    if service.tier == Tier.TIER_0 and env == "prod":
+    if service.tier == Tier.TIER_0 and not non_prod:
         return GateDecision(
             False, True, "BLOCK(human): tier-0 service in prod — requires human approval"
         )
 
     # --- REQUIRE_HUMAN ---
-    if env == "prod":
-        return GateDecision(
-            False, True, "REQUIRE_HUMAN: production action — propose and wait for approval"
-        )
+    if not non_prod:
+        if env == "prod":
+            reason = "REQUIRE_HUMAN: production action — propose and wait for approval"
+        else:
+            reason = f"REQUIRE_HUMAN: unknown env {env!r} — treated as production"
+        return GateDecision(False, True, reason)
     if budget_remaining < LOW_BUDGET_THRESHOLD:
         return GateDecision(
             False, True, f"REQUIRE_HUMAN: budget low ({budget_remaining:.0%} left) — escalate"

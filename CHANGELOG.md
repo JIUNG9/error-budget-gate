@@ -17,6 +17,11 @@ versioning follows [PEP 440](https://peps.python.org/pep-0440/).
 - `evaluate` no longer returns ALLOW when `budget_remaining` is NaN. NaN fails every
   comparison, so it skipped all guards. A non-finite budget now requires a human.
 
+- `evaluate` no longer treats an unrecognised `env` ("production", "prd", an empty
+  string) as non-prod. Only an explicit non-prod set (`dev`, `development`, `test`,
+  `qa`, `staging`, `sandbox`, `local`) can ALLOW; anything else is handled like prod.
+  `env=None` or `""` used to default to `dev`.
+
 ### Added
 
 - CI: pytest on Python 3.10–3.13, plus `ruff check` and `ruff format --check`.

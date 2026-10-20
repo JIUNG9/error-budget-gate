@@ -33,8 +33,10 @@ can call.
 ## The gate logic
 
 - **BLOCK** if the action isn't reversible, or the error budget is exhausted, or
-  it's a tier-0 service in prod.
-- **REQUIRE_HUMAN** if it's production, the budget is low (< 25% left), or the budget
+  it's a tier-0 service in prod (or an unrecognised env).
+- **REQUIRE_HUMAN** if it's production or an environment it doesn't recognise (only
+  `dev`, `development`, `test`, `qa`, `staging`, `sandbox` and `local` count as
+  non-prod), the budget is low (< 25% left), or the budget
   isn't a finite number (NaN or infinity): unknown is never treated as healthy.
 - **ALLOW** only when it's reversible, non-prod, and the budget is healthy.
 
