@@ -65,3 +65,30 @@ def test_non_finite_budget_never_allows(bad, env):
 def test_non_finite_budget_does_not_mask_irreversible_block():
     d = evaluate(_act("delete_pvc"), Service("checkout"), float("nan"), "dev")
     assert not d.allow and not d.requires_human
+
+
+@pytest.mark.parametrize("env", ["production", "prd", "prod-eu", "", "  ", None])
+def test_unknown_env_is_not_treated_as_non_prod(env):
+    d = evaluate(_act(), Service("checkout"), budget_remaining=0.9, env=env)
+    assert not d.allow and d.requires_human
+    assert "unknown env" in d.reason
+
+
+@pytest.mark.parametrize(
+    "env", ["dev", "Development", " STAGING ", "qa", "test", "sandbox", "local"]
+)
+def test_known_non_prod_envs_still_allow(env):
+    d = evaluate(_act(), Service("checkout"), budget_remaining=0.9, env=env)
+    assert d.allow and not d.requires_human
+
+
+def test_unknown_env_tier0_blocks_to_human():
+    d = evaluate(_act(), Service("payments", Tier.TIER_0), budget_remaining=0.9, env="production")
+    assert not d.allow and d.requires_human
+    assert "tier-0" in d.reason
+
+
+def test_prod_env_is_case_and_space_insensitive():
+    d = evaluate(_act(), Service("checkout"), budget_remaining=0.9, env=" PROD ")
+    assert not d.allow and d.requires_human
+    assert "production action" in d.reason
