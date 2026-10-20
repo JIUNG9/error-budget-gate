@@ -92,3 +92,9 @@ def test_prod_env_is_case_and_space_insensitive():
     d = evaluate(_act(), Service("checkout"), budget_remaining=0.9, env=" PROD ")
     assert not d.allow and d.requires_human
     assert "production action" in d.reason
+
+
+def test_budget_above_one_requires_human():
+    d = evaluate(_act(), Service("checkout"), budget_remaining=5.0, env="dev")
+    assert not d.allow and d.requires_human
+    assert "above 1" in d.reason

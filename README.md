@@ -37,8 +37,12 @@ can call.
 - **REQUIRE_HUMAN** if it's production or an environment it doesn't recognise (only
   `dev`, `development`, `test`, `qa`, `staging`, `sandbox` and `local` count as
   non-prod), the budget is low (< 25% left), or the budget
-  isn't a finite number (NaN or infinity): unknown is never treated as healthy.
+  isn't a finite number (NaN or infinity) or is above 1: unknown is never treated as healthy.
 - **ALLOW** only when it's reversible, non-prod, and the budget is healthy.
+
+`remaining_budget` and `burn_rate` raise `ValueError` on impossible input (negative
+counts, `good_events > total_events`, an SLO target outside 0 to 1) rather than
+returning a clamped number.
 
 The reversible-action allow-list is explicit; anything destructive
 (`delete`/`destroy`/`terminate`/…) is never reversible, no matter what flag you pass.
