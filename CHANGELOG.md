@@ -29,6 +29,11 @@ versioning follows [PEP 440](https://peps.python.org/pep-0440/).
 
 ### Added
 
+- Prometheus budget adapter. `remaining_budget_from_prometheus(base_url, query, slo_target)` runs
+  an instant query that returns the SLI as a ratio and converts it to remaining budget.
+  `remaining_budget_from_sli` does the same math for a ratio you already have. Standard
+  library only. No data, several series, NaN or an HTTP error raise `PrometheusError`
+  instead of producing a budget.
 - CI: pytest on Python 3.10–3.13, plus `ruff check` and `ruff format --check`.
 - `CONTRIBUTING.md` and this changelog.
 

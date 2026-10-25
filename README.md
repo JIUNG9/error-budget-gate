@@ -73,10 +73,32 @@ pip install -e ".[dev]"
 python -m pytest -q
 ```
 
+## Budget from Prometheus
+
+If your SLI is a Prometheus ratio, the adapter reads it and returns the remaining budget.
+The query must return one sample between 0 and 1:
+
+```python
+from budgetgate import remaining_budget_from_prometheus
+
+budget = remaining_budget_from_prometheus(
+    "http://prometheus.monitoring.svc:9090",
+    'sum(rate(http_requests_total{job="checkout",code!~"5.."}[30d]))'
+    ' / sum(rate(http_requests_total{job="checkout"}[30d]))',
+    slo_target=0.99,
+)
+```
+
+It uses the standard library only (`urllib`), accepts `http://` and `https://` URLs, and takes
+`timeout=` and `headers=` (for example an `Authorization` header). If the query returns no
+data, several series, NaN (no traffic in the window) or an error, it raises `PrometheusError`.
+It does not guess a budget. Catch the error and decide, or pass `float("nan")` to `evaluate`,
+which requires a human.
+
 ## Roadmap
 
 - MCP server mode, so AI agents (Claude Code, kagent, etc.) can call the gate as a tool.
-- Budget adapters for Prometheus / SigNoz (compute `remaining_budget` from live SLIs).
+- A budget adapter for SigNoz (Prometheus is done).
 - A `dry_run` blast-radius estimator (stubbed today).
 
 ## License
