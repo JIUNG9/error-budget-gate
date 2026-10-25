@@ -42,3 +42,17 @@ def burn_rate(good_events: int, total_events: int, slo_target: float) -> float:
         return float("inf")
     consumed_bad = total_events - good_events
     return consumed_bad / allowed_bad
+
+
+def remaining_budget_from_sli(sli: float, slo_target: float) -> float:
+    """Fraction of the error budget still available, from a ratio SLI instead of counts.
+
+    remaining = 1 - (1 - sli) / (1 - slo_target), clamped to [0, 1].
+
+    Raises ValueError for an SLO target outside (0, 1) or an ``sli`` outside [0, 1].
+    """
+    if not 0.0 < slo_target < 1.0:
+        raise ValueError("slo_target must be strictly between 0 and 1")
+    if not 0.0 <= sli <= 1.0:
+        raise ValueError(f"sli must be between 0 and 1, got {sli}")
+    return max(0.0, min(1.0, 1.0 - (1.0 - sli) / (1.0 - slo_target)))
