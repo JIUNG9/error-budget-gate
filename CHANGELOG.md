@@ -29,6 +29,8 @@ versioning follows [PEP 440](https://peps.python.org/pep-0440/).
 
 ### Added
 
+- `python -m budgetgate` (also installed as `budgetgate`): evaluates one action from flags,
+  prints the decision and exits 0 (allow), 10 (require human) or 20 (block).
 - Prometheus budget adapter. `remaining_budget_from_prometheus(base_url, query, slo_target)` runs
   an instant query that returns the SLI as a ratio and converts it to remaining budget.
   `remaining_budget_from_sli` does the same math for a ratio you already have. Standard
