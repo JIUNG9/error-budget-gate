@@ -73,6 +73,25 @@ pip install -e ".[dev]"
 python -m pytest -q
 ```
 
+## Command line
+
+```bash
+python -m budgetgate --action rollout_restart --service checkout --budget 0.8 --env dev
+# ALLOW: reversible 'rollout_restart', 80% budget left, env=dev
+echo $?   # 0
+```
+
+| Exit code | Decision |
+| --- | --- |
+| 0 | allow |
+| 10 | require human |
+| 20 | block |
+| 2 | bad arguments |
+
+`--tier` (0 to 3, default 2) sets the service tier and `--json` prints the decision as JSON.
+The action's reversibility comes from the allow-list, not from a flag. `--budget nan` requires a
+human, the same as passing NaN to `evaluate`.
+
 ## Budget from Prometheus
 
 If your SLI is a Prometheus ratio, the adapter reads it and returns the remaining budget.

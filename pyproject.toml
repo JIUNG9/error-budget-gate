@@ -16,6 +16,9 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["pytest>=7"]
 
+[project.scripts]
+budgetgate = "budgetgate.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/JIUNG9/error-budget-gate"
 Source = "https://github.com/JIUNG9/error-budget-gate"
