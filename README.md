@@ -36,9 +36,17 @@ can call.
   it's a tier-0 service in prod (or an unrecognised env).
 - **REQUIRE_HUMAN** if it's production or an environment it doesn't recognise (only
   `dev`, `development`, `test`, `qa`, `staging`, `sandbox` and `local` count as
-  non-prod), the budget is low (< 25% left), or the budget
+  non-prod by default; see below), the budget is low (< 25% left), or the budget
   isn't a finite number (NaN or infinity) or is above 1: unknown is never treated as healthy.
 - **ALLOW** only when it's reversible, non-prod, and the budget is healthy.
+
+To opt in your own environment names, pass `non_prod_envs` to `evaluate` (or
+`--non-prod-env NAME`, repeatable, on the command line). The list replaces the default set,
+names are matched case-insensitively, and `prod` or `production` raises `ValueError`:
+
+```python
+evaluate(action, service, 0.8, env="preprod", non_prod_envs=["preprod", "dev"])
+```
 
 `remaining_budget` and `burn_rate` raise `ValueError` on impossible input (negative
 counts, `good_events > total_events`, an SLO target outside 0 to 1) rather than
@@ -88,6 +96,7 @@ echo $?   # 0
 | 20 | block |
 | 2 | bad arguments |
 
+`--non-prod-env NAME` (repeatable) replaces the built-in set of non-prod environments.
 `--tier` (0 to 3, default 2) sets the service tier and `--json` prints the decision as JSON.
 The action's reversibility comes from the allow-list, not from a flag. `--budget nan` requires a
 human, the same as passing NaN to `evaluate`.

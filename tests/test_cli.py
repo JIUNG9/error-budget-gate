@@ -70,3 +70,22 @@ def test_bad_arguments_exit_2(argv, capsys):
     with pytest.raises(SystemExit) as exc:
         main(argv)
     assert exc.value.code == 2
+
+
+def test_non_prod_env_flag_opts_a_custom_env_in(capsys):
+    code = run(
+        "--action", "rollout_restart", "--service", "checkout", "--budget", "0.8",
+        "--env", "preprod", "--non-prod-env", "preprod",
+    )  # fmt: skip
+    assert code == 0
+    assert "env=preprod" in capsys.readouterr().out
+
+
+def test_non_prod_env_flag_rejects_prod(capsys):
+    with pytest.raises(SystemExit) as exc:
+        run(
+            "--action", "restart", "--service", "checkout", "--budget", "0.8",
+            "--non-prod-env", "prod",
+        )  # fmt: skip
+    assert exc.value.code == 2
+    assert "production" in capsys.readouterr().err

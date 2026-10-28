@@ -98,3 +98,39 @@ def test_budget_above_one_requires_human():
     d = evaluate(_act(), Service("checkout"), budget_remaining=5.0, env="dev")
     assert not d.allow and d.requires_human
     assert "above 1" in d.reason
+
+
+def test_custom_non_prod_env_can_allow():
+    d = evaluate(_act(), Service("checkout"), 0.8, env="preprod", non_prod_envs=["preprod", "Dev"])
+    assert d.allow
+
+
+def test_custom_set_replaces_the_default():
+    d = evaluate(_act(), Service("checkout"), 0.8, env="dev", non_prod_envs=["preprod"])
+    assert not d.allow and d.requires_human
+
+
+def test_custom_set_is_case_and_space_insensitive():
+    d = evaluate(_act(), Service("checkout"), 0.8, env=" PreProd ", non_prod_envs=[" PREPROD"])
+    assert d.allow
+
+
+@pytest.mark.parametrize("bad", [["prod"], ["Production"], ["dev", " PROD "]])
+def test_custom_set_cannot_include_prod(bad):
+    with pytest.raises(ValueError, match="production"):
+        evaluate(_act(), Service("checkout"), 0.8, env="dev", non_prod_envs=bad)
+
+
+def test_custom_set_rejects_empty_name():
+    with pytest.raises(ValueError, match="empty"):
+        evaluate(_act(), Service("checkout"), 0.8, env="dev", non_prod_envs=["dev", ""])
+
+
+def test_custom_set_rejects_a_bare_string():
+    with pytest.raises(TypeError):
+        evaluate(_act(), Service("checkout"), 0.8, env="preprod", non_prod_envs="preprod")
+
+
+def test_empty_custom_set_allows_nothing():
+    d = evaluate(_act(), Service("checkout"), 0.8, env="dev", non_prod_envs=[])
+    assert not d.allow and d.requires_human

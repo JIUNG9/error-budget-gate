@@ -49,6 +49,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--env", default="dev", help="environment name (default: dev)")
     parser.add_argument(
+        "--non-prod-env",
+        action="append",
+        metavar="NAME",
+        help="environment that may act unattended; repeat for several. Replaces the "
+        "built-in set (dev, development, test, qa, staging, sandbox, local)",
+    )
+    parser.add_argument(
         "--tier", type=_tier, default=Tier.TIER_2, help="service tier 0-3 (default: 2)"
     )
     parser.add_argument("--json", action="store_true", help="print the decision as JSON")
@@ -59,7 +66,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     # The allow-list in is_reversible() decides reversibility; the flag cannot widen it.
     action = Action(args.action, reversible=True)
-    decision = evaluate(action, Service(args.service, tier=args.tier), args.budget, args.env)
+    try:
+        decision = evaluate(
+            action,
+            Service(args.service, tier=args.tier),
+            args.budget,
+            args.env,
+            non_prod_envs=args.non_prod_env,
+        )
+    except ValueError as exc:
+        build_parser().error(str(exc))
     code = exit_code(decision)
     if args.json:
         payload = {
