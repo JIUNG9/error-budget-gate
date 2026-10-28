@@ -29,6 +29,10 @@ versioning follows [PEP 440](https://peps.python.org/pep-0440/).
 
 ### Added
 
+- `evaluate(..., non_prod_envs=...)` and `--non-prod-env` let a site name its own non-prod
+  environments (for example `preprod`). The default set is unchanged, and `prod` or
+  `production` in the list raises `ValueError`.
+
 - `python -m budgetgate` (also installed as `budgetgate`): evaluates one action from flags,
   prints the decision and exits 0 (allow), 10 (require human) or 20 (block).
 - Prometheus budget adapter. `remaining_budget_from_prometheus(base_url, query, slo_target)` runs

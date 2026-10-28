@@ -4,6 +4,7 @@ The rule: automation may PROPOSE a fix; the error budget decides whether it ACTS
 """
 
 import math
+from collections.abc import Iterable
 
 from .actions import is_reversible
 from .models import Action, GateDecision, Service, Tier
@@ -14,13 +15,39 @@ LOW_BUDGET_THRESHOLD = 0.25  # below this, escalate to a human even in non-prod
 # "production" or "prd", is treated like prod: unknown is never assumed safe.
 NON_PROD_ENVS = frozenset({"dev", "development", "test", "qa", "staging", "sandbox", "local"})
 
+# A caller may widen the set with its own names, but never with these.
+_PROD_ENVS = frozenset({"prod", "production"})
+
+
+def _normalise_envs(envs: Iterable[str]) -> frozenset[str]:
+    if isinstance(envs, str):
+        raise TypeError("non_prod_envs must be a collection of names, not a single string")
+    names = frozenset(str(e).strip().lower() for e in envs)
+    if "" in names:
+        raise ValueError("non_prod_envs must not contain an empty name")
+    if names & _PROD_ENVS:
+        raise ValueError(
+            f"non_prod_envs must not contain a production name: {sorted(names & _PROD_ENVS)}"
+        )
+    return names
+
 
 def evaluate(
-    action: Action, service: Service, budget_remaining: float, env: str = "dev"
+    action: Action,
+    service: Service,
+    budget_remaining: float,
+    env: str = "dev",
+    non_prod_envs: Iterable[str] | None = None,
 ) -> GateDecision:
-    """Return a GateDecision for an automated action. No side effects."""
+    """Return a GateDecision for an automated action. No side effects.
+
+    `non_prod_envs` replaces the default NON_PROD_ENVS, so a site with an environment
+    called "preprod" can opt it in. Names are compared case-insensitively. The set
+    cannot include "prod" or "production", and it cannot be empty-named.
+    """
     env = (env or "").strip().lower()
-    non_prod = env in NON_PROD_ENVS
+    allowed = NON_PROD_ENVS if non_prod_envs is None else _normalise_envs(non_prod_envs)
+    non_prod = env in allowed
     # Trust the allow-list over a caller-supplied flag.
     reversible = bool(action.reversible) and is_reversible(action.name)
 
