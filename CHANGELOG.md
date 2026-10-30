@@ -6,6 +6,12 @@ versioning follows [PEP 440](https://peps.python.org/pep-0440/).
 
 ## [Unreleased]
 
+### Documentation
+
+- `dry_run` is documented as a reversibility preview that uses the same rule as `evaluate`. It
+  was described as a blast-radius estimator "stubbed today"; it never estimated blast radius,
+  and the README and docstring now say so.
+
 ### Changed
 
 - Renamed the distribution and repository to `error-budget-gate` so the name says
