@@ -52,6 +52,19 @@ def test_dry_run_no_side_effects():
     assert r.reversible and r.rollback_available and r.est_duration_s == 30
 
 
+@pytest.mark.parametrize(
+    "name,flag", [("rollout_restart", True), ("rollout_restart", False), ("delete_pvc", True)]
+)
+def test_dry_run_reversible_matches_the_gate(name, flag):
+    # dry_run previews the same reversibility rule evaluate applies: the flag AND the allow-list.
+    act = _act(name, reversible=flag)
+    r = dry_run(act, Service("checkout"))
+    d = evaluate(act, Service("checkout"), 0.9, "dev")
+    assert r.reversible == d.allow
+    assert r.rollback_available == r.reversible
+    assert ("NOT reversible" in r.note) == (not r.reversible)
+
+
 @pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
 @pytest.mark.parametrize("env", ["dev", "prod"])
 def test_non_finite_budget_never_allows(bad, env):

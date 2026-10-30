@@ -81,6 +81,22 @@ pip install -e ".[dev]"
 python -m pytest -q
 ```
 
+## Dry run
+
+`dry_run(action, service)` previews how the gate classifies an action without evaluating
+a budget or environment. It returns a `DryRunResult` with `reversible` (the same rule as
+`evaluate`: the caller's flag and the allow-list must both say yes), `rollback_available`
+(equal to `reversible`), `est_duration_s` (copied from the action, not measured) and a `note`.
+
+```python
+dry_run(Action("rollout_restart", reversible=True, est_duration_s=30), Service("checkout"))
+# DryRunResult(action='rollout_restart', service='checkout', reversible=True, ...)
+```
+
+It is not a blast-radius estimate. It does not read the service's replicas, dependencies or
+traffic, so a reversible action can still be unsafe to run; the gate's budget and tier
+checks cover that.
+
 ## Command line
 
 ```bash
@@ -127,7 +143,7 @@ which requires a human.
 
 - MCP server mode, so AI agents (Claude Code, kagent, etc.) can call the gate as a tool.
 - A budget adapter for SigNoz (Prometheus is done).
-- A `dry_run` blast-radius estimator (stubbed today).
+- A blast-radius estimate for `dry_run` (replicas, dependants, traffic share); it only reports reversibility today.
 
 ## License
 
