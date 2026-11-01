@@ -117,6 +117,62 @@ echo $?   # 0
 The action's reversibility comes from the allow-list, not from a flag. `--budget nan` requires a
 human, the same as passing NaN to `evaluate`.
 
+### JSON output
+
+With `--json` the command prints one JSON object on a single line. The exit code is the same
+as without the flag.
+
+```bash
+python -m budgetgate --action rollout_restart --service checkout --budget 0.1 --env prod --json
+# {"allow": false, "requires_human": true, "reason": "REQUIRE_HUMAN: ...", "exit_code": 10}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `allow` | boolean | `true` only for an allow decision (exit code 0) |
+| `requires_human` | boolean | `true` when a person must act: on every exit 10, and on blocks for an exhausted budget or a tier-0 service in prod |
+| `reason` | string | The same one-line text printed without `--json`; it starts with `ALLOW`, `REQUIRE_HUMAN` or `BLOCK` (`BLOCK(human)` for tier-0 in prod) |
+| `exit_code` | integer | 0, 10 or 20, equal to the process exit code |
+
+`allow: false` with exit 20 is a block. `requires_human` can be `true` or `false` on a block,
+so branch on `exit_code`, not on `requires_human`. Bad arguments exit 2 and print the
+error to stderr, not JSON. Non-ASCII characters in `reason` are escaped (`\u2014`), so parse
+the output with a JSON parser rather than matching on the raw text.
+
+### Use in CI
+
+Any step that runs the command can branch on its exit code. This GitHub Actions step lets an
+allow through, stops the job for a human on exit 10, and fails the job on exit 20:
+
+```yaml
+- name: Error budget gate
+  id: gate
+  run: |
+    set +e
+    python -m budgetgate --action rollout_restart --service checkout \
+      --budget "$BUDGET_REMAINING" --env "$TARGET_ENV" --json | tee gate.json
+    code=${PIPESTATUS[0]}
+    echo "code=$code" >> "$GITHUB_OUTPUT"
+    exit 0
+
+- name: Deploy
+  if: steps.gate.outputs.code == '0'
+  run: ./deploy.sh
+
+- name: Wait for approval
+  if: steps.gate.outputs.code == '10'
+  run: echo "A person must approve this change." && exit 1
+
+- name: Blocked
+  if: steps.gate.outputs.code == '20'
+  run: jq -r .reason gate.json && exit 1
+```
+
+`BUDGET_REMAINING` and `TARGET_ENV` come from your own earlier steps, for example the
+Prometheus adapter above. `PIPESTATUS` keeps the gate's exit code instead of `tee`'s. If the
+code is 2 or anything else, none of the three later steps runs, so add a final step that fails
+the job on any other value if you need that case covered.
+
 ## Budget from Prometheus
 
 If your SLI is a Prometheus ratio, the adapter reads it and returns the remaining budget.

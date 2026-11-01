@@ -8,6 +8,8 @@ versioning follows [PEP 440](https://peps.python.org/pep-0440/).
 
 ### Documentation
 
+- The README documents the `--json` fields and has a GitHub Actions example that branches on the
+  exit code (0, 10, 20). A test pins the JSON keys and values for each decision.
 - `dry_run` is documented as a reversibility preview that uses the same rule as `evaluate`. It
   was described as a blast-radius estimator "stubbed today"; it never estimated blast radius,
   and the README and docstring now say so.
