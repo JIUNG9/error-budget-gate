@@ -59,6 +59,24 @@ def test_json_output(capsys):
 
 
 @pytest.mark.parametrize(
+    ("argv", "code", "allow", "requires_human", "prefix"),
+    [
+        (["--budget", "0.8"], 0, True, False, "ALLOW"),
+        (["--budget", "0.1", "--env", "prod"], 10, False, True, "REQUIRE_HUMAN"),
+        (["--budget", "0", "--env", "dev"], 20, False, True, "BLOCK"),
+    ],
+)
+def test_json_fields_match_documented_contract(capsys, argv, code, allow, requires_human, prefix):
+    got = run("--action", "restart", "--service", "checkout", *argv, "--json")
+    out = json.loads(capsys.readouterr().out)
+    assert set(out) == {"allow", "requires_human", "reason", "exit_code"}
+    assert got == out["exit_code"] == code
+    assert out["allow"] is allow
+    assert out["requires_human"] is requires_human
+    assert out["reason"].startswith(prefix)
+
+
+@pytest.mark.parametrize(
     "argv",
     [
         ["--service", "checkout", "--budget", "0.5"],
