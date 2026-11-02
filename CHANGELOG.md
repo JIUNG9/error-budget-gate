@@ -6,6 +6,13 @@ versioning follows [PEP 440](https://peps.python.org/pep-0440/).
 
 ## [Unreleased]
 
+### Added
+
+- `evaluate(..., burn_rate_1h=, burn_rate_6h=)` and `--burn-rate-1h` / `--burn-rate-6h`. A 1-hour
+  burn rate of 14.4 or more blocks; a 6-hour burn rate of 6 or more requires a human; NaN requires
+  a human; a negative value raises `ValueError`. Thresholds are the SRE Workbook multiwindow
+  page levels. Both inputs default to `None`, which leaves existing decisions unchanged.
+
 ### Documentation
 
 - The README documents the `--json` fields and has a GitHub Actions example that branches on the

@@ -33,11 +33,13 @@ can call.
 ## The gate logic
 
 - **BLOCK** if the action isn't reversible, or the error budget is exhausted, or
-  it's a tier-0 service in prod (or an unrecognised env).
+  the 1-hour burn rate is 14.4 or more, or it's a tier-0 service in prod (or an
+  unrecognised env).
 - **REQUIRE_HUMAN** if it's production or an environment it doesn't recognise (only
   `dev`, `development`, `test`, `qa`, `staging`, `sandbox` and `local` count as
   non-prod by default; see below), the budget is low (< 25% left), or the budget
   isn't a finite number (NaN or infinity) or is above 1: unknown is never treated as healthy.
+  A 6-hour burn rate of 6 or more, or a NaN burn rate, also requires a human.
 - **ALLOW** only when it's reversible, non-prod, and the budget is healthy.
 
 To opt in your own environment names, pass `non_prod_envs` to `evaluate` (or
@@ -54,6 +56,27 @@ returning a clamped number.
 
 The reversible-action allow-list is explicit; anything destructive
 (`delete`/`destroy`/`terminate`/…) is never reversible, no matter what flag you pass.
+
+### Burn rate
+
+The remaining budget says how much is left. The burn rate says how fast it is going.
+Pass `burn_rate_1h` and `burn_rate_6h` (see `burn_rate`) to `evaluate`, or
+`--burn-rate-1h` and `--burn-rate-6h` on the command line:
+
+| Input | Threshold | Decision |
+|-------|-----------|----------|
+| `burn_rate_1h` | 14.4 or more | BLOCK (exit 20) |
+| `burn_rate_6h` | 6 or more | REQUIRE_HUMAN (exit 10) |
+| either, NaN | | REQUIRE_HUMAN |
+| either, negative | | `ValueError` (CLI exit 2) |
+
+The thresholds are the fast and slow page levels from the Google SRE Workbook chapter
+"Alerting on SLOs" (14.4x over 1 hour spends 2% of a 30-day budget; 6x over 6 hours spends 5%).
+Both inputs are optional. Without them the decision depends only on the remaining budget,
+as before. Each window is compared on its own. The Workbook also pairs each window with a
+shorter one (5 minutes, 30 minutes) so an alert clears quickly; that confirmation window is
+not modelled here, so a burn that has already stopped can still hold the gate until the
+longer window recovers.
 
 ## Quickstart
 
