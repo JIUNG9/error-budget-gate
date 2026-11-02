@@ -147,3 +147,79 @@ def test_custom_set_rejects_a_bare_string():
 def test_empty_custom_set_allows_nothing():
     d = evaluate(_act(), Service("checkout"), 0.8, env="dev", non_prod_envs=[])
     assert not d.allow and d.requires_human
+
+
+# --- burn rate (SRE Workbook thresholds: 14.4x over 1h blocks, 6x over 6h needs a human) ---
+
+
+def _burn(**kw):
+    return evaluate(_act(), Service("checkout", Tier.TIER_2), 0.8, "dev", **kw)
+
+
+def test_burn_rates_default_to_no_effect():
+    assert _burn().allow
+
+
+@pytest.mark.parametrize("value", [0, 1, 14.39])
+def test_1h_burn_below_threshold_allows(value):
+    assert _burn(burn_rate_1h=value).allow
+
+
+@pytest.mark.parametrize("value", [14.4, 14.41, 100, float("inf")])
+def test_1h_burn_at_or_above_threshold_blocks(value):
+    d = _burn(burn_rate_1h=value)
+    assert not d.allow and d.requires_human
+    assert d.reason.startswith("BLOCK")
+
+
+@pytest.mark.parametrize("value", [0, 1, 5.99])
+def test_6h_burn_below_threshold_allows(value):
+    assert _burn(burn_rate_6h=value).allow
+
+
+@pytest.mark.parametrize("value", [6, 6.01, 14.39, 50])
+def test_6h_burn_at_or_above_threshold_requires_human(value):
+    d = _burn(burn_rate_6h=value)
+    assert not d.allow and d.requires_human
+    assert d.reason.startswith("REQUIRE_HUMAN")
+
+
+def test_each_window_uses_only_its_own_threshold():
+    # 1h burn of 10 is below 14.4; 6h burn of 3 is below 6. Neither trips the other's rule.
+    assert _burn(burn_rate_1h=10, burn_rate_6h=3).allow
+    # A 1h value above the 6h threshold does not trip the 6h rule.
+    assert _burn(burn_rate_1h=7).allow
+
+
+def test_1h_block_wins_over_6h_require_human():
+    d = _burn(burn_rate_1h=20, burn_rate_6h=7)
+    assert d.reason.startswith("BLOCK")
+
+
+@pytest.mark.parametrize("kw", [{"burn_rate_1h": float("nan")}, {"burn_rate_6h": float("nan")}])
+def test_nan_burn_rate_requires_human(kw):
+    d = _burn(**kw)
+    assert not d.allow and d.requires_human
+    assert d.reason.startswith("REQUIRE_HUMAN")
+
+
+@pytest.mark.parametrize("kw", [{"burn_rate_1h": -0.1}, {"burn_rate_6h": -1}])
+def test_negative_burn_rate_is_rejected(kw):
+    with pytest.raises(ValueError):
+        _burn(**kw)
+
+
+@pytest.mark.parametrize("bad", ["5", True])
+def test_non_numeric_burn_rate_is_rejected(bad):
+    with pytest.raises(TypeError):
+        _burn(burn_rate_1h=bad)
+
+
+def test_burn_rate_does_not_mask_an_irreversible_block():
+    d = evaluate(_act("delete_pvc"), Service("checkout"), 0.9, "dev", burn_rate_6h=7)
+    assert "not a reversible" in d.reason
+
+
+def test_burn_rate_blocks_in_prod_too():
+    d = evaluate(_act(), Service("checkout", Tier.TIER_2), 0.9, "prod", burn_rate_1h=15)
+    assert d.reason.startswith("BLOCK")

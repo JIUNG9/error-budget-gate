@@ -47,6 +47,16 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         help="remaining error budget as a fraction (0.5 = 50%% left); nan requires a human",
     )
+    parser.add_argument(
+        "--burn-rate-1h",
+        type=float,
+        help="error-budget burn rate over the last hour; >= 14.4 blocks",
+    )
+    parser.add_argument(
+        "--burn-rate-6h",
+        type=float,
+        help="error-budget burn rate over the last six hours; >= 6 requires a human",
+    )
     parser.add_argument("--env", default="dev", help="environment name (default: dev)")
     parser.add_argument(
         "--non-prod-env",
@@ -73,6 +83,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.budget,
             args.env,
             non_prod_envs=args.non_prod_env,
+            burn_rate_1h=args.burn_rate_1h,
+            burn_rate_6h=args.burn_rate_6h,
         )
     except ValueError as exc:
         build_parser().error(str(exc))

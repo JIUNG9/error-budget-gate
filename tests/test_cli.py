@@ -107,3 +107,43 @@ def test_non_prod_env_flag_rejects_prod(capsys):
         )  # fmt: skip
     assert exc.value.code == 2
     assert "production" in capsys.readouterr().err
+
+
+def test_1h_burn_rate_at_threshold_blocks_exits_20(capsys):
+    code = run(
+        "--action", "restart", "--service", "checkout", "--budget", "0.8",
+        "--burn-rate-1h", "14.4",
+    )  # fmt: skip
+    assert code == 20
+    assert "1h burn rate" in capsys.readouterr().out
+
+
+def test_6h_burn_rate_at_threshold_requires_human_exits_10():
+    code = run(
+        "--action", "restart", "--service", "checkout", "--budget", "0.8",
+        "--burn-rate-6h", "6",
+    )  # fmt: skip
+    assert code == 10
+
+
+def test_burn_rates_below_thresholds_still_allow():
+    code = run(
+        "--action", "restart", "--service", "checkout", "--budget", "0.8",
+        "--burn-rate-1h", "14.3", "--burn-rate-6h", "5.9",
+    )  # fmt: skip
+    assert code == 0
+
+
+def test_negative_burn_rate_exits_2():
+    with pytest.raises(SystemExit) as exc:
+        run(
+            "--action",
+            "restart",
+            "--service",
+            "checkout",
+            "--budget",
+            "0.8",
+            "--burn-rate-1h",
+            "-1",
+        )
+    assert exc.value.code == 2
