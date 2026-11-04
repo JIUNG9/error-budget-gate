@@ -6,6 +6,13 @@ versioning follows [PEP 440](https://peps.python.org/pep-0440/).
 
 ## [Unreleased]
 
+### Changed
+
+- Prod no longer returns REQUIRE_HUMAN on every path. With `env="prod"`, a reversible action on
+  a tier 1-3 service is allowed when `budget_remaining` is at least 0.5 and `burn_rate_1h` is
+  given and below 1.0. A missing or NaN `burn_rate_1h`, a lower budget, or a tier-0 service
+  still needs a human. Callers that never pass `burn_rate_1h` see no change in prod.
+
 ### Added
 
 - `evaluate(..., burn_rate_1h=, burn_rate_6h=)` and `--burn-rate-1h` / `--burn-rate-6h`. A 1-hour
