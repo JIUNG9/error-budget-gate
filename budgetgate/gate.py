@@ -11,6 +11,11 @@ from .models import Action, GateDecision, Service, Tier
 
 LOW_BUDGET_THRESHOLD = 0.25  # below this, escalate to a human even in non-prod
 
+# Production policy. An unattended action in prod needs more headroom than in non-prod and
+# proof that the budget is not being spent faster than the SLO window allows right now.
+PROD_MIN_BUDGET = 0.5
+PROD_MAX_BURN_1H = 1.0  # a 1h burn rate below 1 spends less than the SLO window allows
+
 # Burn-rate thresholds from the Google SRE Workbook, "Alerting on SLOs" (multiwindow,
 # multi-burn-rate alerts): 14.4x over 1 hour spends 2% of a 30-day budget, 6x over 6 hours
 # spends 5%. A burn rate of 1.0 spends the budget in exactly the SLO window.
@@ -48,6 +53,27 @@ def _check_burn(name: str, value: float | None) -> float | None:
     return float(value)
 
 
+def _prod_reason(budget_remaining: float, burn_1h: float | None) -> str | None:
+    """Return why prod needs a human, or None when the prod policy allows the action.
+
+    Reversibility, the exhausted budget, the burn-rate blocks and tier 0 are already
+    handled by the caller. A missing 1h burn rate is unknown, so it escalates.
+    """
+    if burn_1h is None:
+        return "REQUIRE_HUMAN: production action without a 1h burn rate — propose and wait"
+    if not burn_1h < PROD_MAX_BURN_1H:  # also catches NaN
+        return (
+            f"REQUIRE_HUMAN: production action, 1h burn rate {burn_1h:g} is not below "
+            f"{PROD_MAX_BURN_1H:g} — propose and wait for approval"
+        )
+    if budget_remaining < PROD_MIN_BUDGET:
+        return (
+            f"REQUIRE_HUMAN: production action, budget {budget_remaining:.0%} is below "
+            f"{PROD_MIN_BUDGET:.0%} — propose and wait for approval"
+        )
+    return None
+
+
 def evaluate(
     action: Action,
     service: Service,
@@ -68,6 +94,10 @@ def evaluate(
     threshold from the SRE Workbook: `burn_rate_1h` >= 14.4 is a BLOCK, `burn_rate_6h` >= 6
     is REQUIRE_HUMAN. A NaN reading is unknown and requires a human. A negative value
     raises ValueError. When both are None the decision depends only on the remaining budget.
+    In prod (`env == "prod"`) the gate allows an unattended action only for a service that
+    is not tier 0, with `budget_remaining` of at least PROD_MIN_BUDGET and a `burn_rate_1h`
+    below PROD_MAX_BURN_1H. Every other prod case requires a human, including a missing
+    `burn_rate_1h`. Other names ("production", "prd") are unknown and always require a human.
     Each window is compared on its own; the Workbook's shorter confirmation window (5m,
     30m) is not modelled, so a burn that has already stopped can still hold the gate.
     """
@@ -122,7 +152,14 @@ def evaluate(
     # --- REQUIRE_HUMAN ---
     if not non_prod:
         if env == "prod":
-            reason = "REQUIRE_HUMAN: production action — propose and wait for approval"
+            reason = _prod_reason(budget_remaining, burn_1h)
+            if reason is None:
+                return GateDecision(
+                    True,
+                    False,
+                    f"ALLOW: reversible '{action.name}' in prod, {budget_remaining:.0%} budget "
+                    f"left, 1h burn rate {burn_1h:g}",
+                )
         else:
             reason = f"REQUIRE_HUMAN: unknown env {env!r} — treated as production"
         return GateDecision(False, True, reason)

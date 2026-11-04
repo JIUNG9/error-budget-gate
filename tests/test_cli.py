@@ -23,6 +23,23 @@ def test_prod_requires_human_exits_10(capsys):
     assert capsys.readouterr().out.startswith("REQUIRE_HUMAN")
 
 
+def test_prod_allows_with_a_calm_burn_rate_exits_0(capsys):
+    code = run(
+        "--action",
+        "rollout_restart",
+        "--service",
+        "checkout",
+        "--budget",
+        "0.8",
+        "--env",
+        "prod",
+        "--burn-rate-1h",
+        "0.4",
+    )
+    assert code == 0
+    assert capsys.readouterr().out.startswith("ALLOW")
+
+
 def test_irreversible_action_blocks_exits_20(capsys):
     code = run("--action", "delete_pvc", "--service", "checkout", "--budget", "0.8")
     assert code == 20

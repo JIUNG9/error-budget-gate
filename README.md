@@ -35,12 +35,32 @@ can call.
 - **BLOCK** if the action isn't reversible, or the error budget is exhausted, or
   the 1-hour burn rate is 14.4 or more, or it's a tier-0 service in prod (or an
   unrecognised env).
-- **REQUIRE_HUMAN** if it's production or an environment it doesn't recognise (only
+- **REQUIRE_HUMAN** if it's production and the prod policy below isn't met, or an environment it doesn't recognise (only
   `dev`, `development`, `test`, `qa`, `staging`, `sandbox` and `local` count as
   non-prod by default; see below), the budget is low (< 25% left), or the budget
   isn't a finite number (NaN or infinity) or is above 1: unknown is never treated as healthy.
   A 6-hour burn rate of 6 or more, or a NaN burn rate, also requires a human.
-- **ALLOW** only when it's reversible, non-prod, and the budget is healthy.
+- **ALLOW** when it's reversible, non-prod, and the budget is healthy, or when the prod policy
+  below is met.
+
+### Production policy
+
+In `env == "prod"` the gate allows an unattended action only when all of these hold:
+
+- the action is on the reversible allow-list,
+- the service is tier 1, 2 or 3 (tier 0 always needs a human),
+- `budget_remaining` is at least 50%,
+- `burn_rate_1h` is passed and is below 1.0 (the budget is not being spent faster than the SLO
+  window allows), and the 1h and 6h blocks above don't apply.
+
+Anything else in prod is REQUIRE_HUMAN, including a missing `burn_rate_1h`: without it the gate
+can't tell whether the budget is draining now. The 50% floor and the 1.0 burn ceiling are
+`PROD_MIN_BUDGET` and `PROD_MAX_BURN_1H` in `budgetgate/gate.py`. Names such as `production` or
+`prd` are not `prod`; they are unknown and never take this path.
+
+```python
+evaluate(action, Service("checkout", Tier.TIER_2), 0.8, env="prod", burn_rate_1h=0.4)  # ALLOW
+```
 
 To opt in your own environment names, pass `non_prod_envs` to `evaluate` (or
 `--non-prod-env NAME`, repeatable, on the command line). The list replaces the default set,

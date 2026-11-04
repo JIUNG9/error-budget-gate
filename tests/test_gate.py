@@ -223,3 +223,64 @@ def test_burn_rate_does_not_mask_an_irreversible_block():
 def test_burn_rate_blocks_in_prod_too():
     d = evaluate(_act(), Service("checkout", Tier.TIER_2), 0.9, "prod", burn_rate_1h=15)
     assert d.reason.startswith("BLOCK")
+
+
+# --- prod policy: ALLOW only with headroom, a calm 1h burn rate and a non-tier-0 service ---
+
+
+def _prod(budget=0.9, burn=0.5, tier=Tier.TIER_2, name="restart", **kw):
+    return evaluate(_act(name), Service("checkout", tier), budget, "prod", burn_rate_1h=burn, **kw)
+
+
+@pytest.mark.parametrize("tier", [Tier.TIER_1, Tier.TIER_2, Tier.TIER_3])
+def test_prod_allows_reversible_action_with_headroom_and_calm_burn(tier):
+    d = _prod(tier=tier)
+    assert d.allow and not d.requires_human
+    assert d.reason.startswith("ALLOW") and "prod" in d.reason
+
+
+def test_prod_tier0_still_needs_a_human_with_perfect_inputs():
+    d = _prod(budget=1.0, burn=0.0, tier=Tier.TIER_0)
+    assert not d.allow and d.requires_human and "tier-0" in d.reason
+
+
+def test_prod_without_burn_rate_requires_human():
+    d = evaluate(_act(), Service("checkout"), 0.9, "prod")
+    assert not d.allow and d.requires_human
+    assert "without a 1h burn rate" in d.reason
+
+
+@pytest.mark.parametrize("burn", [1.0, 1.01, 5.9, float("nan")])
+def test_prod_burn_rate_at_or_above_one_requires_human(burn):
+    d = _prod(burn=burn)
+    assert not d.allow and d.requires_human and d.reason.startswith("REQUIRE_HUMAN")
+
+
+def test_prod_burn_rate_just_below_one_allows():
+    assert _prod(burn=0.999).allow
+
+
+def test_prod_budget_threshold_boundary():
+    assert _prod(budget=0.5).allow
+    d = _prod(budget=0.4999)
+    assert not d.allow and d.requires_human and "below 50%" in d.reason
+
+
+def test_prod_never_allows_an_irreversible_action():
+    d = _prod(name="delete_pvc")
+    assert not d.allow and not d.requires_human and "not a reversible" in d.reason
+
+
+def test_prod_6h_burn_at_threshold_still_escalates():
+    d = _prod(burn=0.5, burn_rate_6h=6)
+    assert not d.allow and d.requires_human
+
+
+@pytest.mark.parametrize("env", ["production", "prd", "prod-eu", ""])
+def test_other_prod_like_names_never_use_the_prod_allow_path(env):
+    d = evaluate(_act(), Service("checkout"), 0.9, env, burn_rate_1h=0.0)
+    assert not d.allow and d.requires_human
+
+
+def test_prod_env_is_case_insensitive_on_the_allow_path():
+    assert evaluate(_act(), Service("checkout"), 0.9, " PROD ", burn_rate_1h=0.1).allow
